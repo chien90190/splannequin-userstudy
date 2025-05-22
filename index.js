@@ -8,67 +8,136 @@ function prevPage() {
 }
 
 function nextPage() {
-    // Add functionality for next page
     console.log('Next page');
     if (changePage(now)) {
         if(now === data_list.length-1) {
             MySubmit = form_url;
             MySubmit += `${username_entry}=` + data_list[0]["username"] + "&";
             
-            for(let i=1; i<data_list.length; i++) {
-                for(let q = 1; q <= num_of_questions; q++) {
-                    MySubmit += entry_list[i-1][q-1] + "=" + data_list[i][`Q${q}`] + "&";
-                };
+            let entryIndex = 0;
+            
+            // Handle all data starting from index 2
+            for(let i=2; i<data_list.length; i++) {
+                if (data_list[i].type === "stillness") {
+                    // Handle stillness questions (S1-S5)
+                    for(let v = 1; v <= 5; v++) {
+                        MySubmit += entry_list[entryIndex][v-1] + "=" + data_list[i][`S${v}`] + "&";
+                    }
+                } else {
+                    // Handle comparison questions (Q1-Q3)  
+                    for(let q = 1; q <= num_of_questions; q++) {
+                        MySubmit += entry_list[entryIndex][q-1] + "=" + data_list[i][`Q${q}`] + "&";
+                    }
+                }
+                entryIndex++;
             }
 
             MySubmit += "submit=Submit";
             window.location.replace(MySubmit);
         } else {
+            // MISSING: Move to next page
             now += 1;
             renderObjects(now);
             resetRadioStatus(now);
         }
-        
+                
     } else {
-        alert("Cannot be empty!!!! 選項尚未選完");
+        alert("Cannot be empty!!!!");
     }
 }
 
 function changePage(now) {
+    console.log("changePage called with now =", now);
+    
     if (now == 0) {
+        // Username validation
+        console.log("Validating username page");
         username = document.getElementById("username");
         if (username.value == "") {
+            console.log("Username is empty");
             return false;
         }
         data_list[0]['username'] = username.value;
-        console.log(data_list[0]['username'])
+        console.log("Username saved:", data_list[0]['username']);
         return true;
-    }
-
-    let query_checked = true
-
-    for(let q = 1; q <= num_of_questions; q++) {
-        let query = document.querySelector(`input[name="Q${q}"]:checked`);
-        if (query == null) {
-            query_checked = false;
-        } else {
-            data_list[now][`Q${q}`] = data_list[now]['data'][parseInt(query.value)-1]['value'] 
+    } else if (now == 1) {
+        // Instruction page - no validation needed, just return true
+        console.log("Instruction page - returning true");
+        return true;
+    } else {
+        // Question validation for video pages
+        console.log("Validating video page");
+        let query_checked = true;
+        let videoDataIndex = now;
+        
+        // Safety check
+        if (!data_list[videoDataIndex]) {
+            console.log("No data found for index", videoDataIndex);
+            return false;
         }
-    }
+        
+        let isStillness = data_list[videoDataIndex].type === "stillness";
+        console.log("Is stillness page:", isStillness);
 
-    return query_checked
+        if (isStillness) {
+            // Validate stillness questions (S1-S5)
+            for(let v = 1; v <= 5; v++) {
+                let query = document.querySelector(`input[name="S${v}"]:checked`);
+                if (query == null) {
+                    query_checked = false;
+                    console.log("Missing answer for S" + v);
+                } else {
+                    data_list[videoDataIndex][`S${v}`] = parseInt(query.value);
+                }
+            }
+        } else {
+            // Validate comparison questions (Q1-Q3)
+            for(let q = 1; q <= num_of_questions; q++) {
+                let query = document.querySelector(`input[name="Q${q}"]:checked`);
+                if (query == null) {
+                    query_checked = false;
+                    console.log("Missing answer for Q" + q);
+                } else {
+                    data_list[videoDataIndex][`Q${q}`] = data_list[videoDataIndex]['data'][parseInt(query.value)-1]['value'] 
+                }
+            }
+        }
+
+        console.log("Query checked result:", query_checked);
+        return query_checked;
+    }
 }
 
 function resetRadioStatus(now) {
-    for(let q = 1; q <= num_of_questions; q++) {
-        for(let v = 1; v <= num_of_selection; v++) {
-            document.getElementById(`q${q}v${v}`).checked = false;
+    if (now <= 1) return;
+    
+    let videoDataIndex = now; 
+    let isStillness = data_list[videoDataIndex].type === "stillness";
+    
+    if (isStillness) {
+        // Reset stillness radio buttons
+        for(let v = 1; v <= 5; v++) {
+            for(let rating = 1; rating <= 5; rating++) {
+                document.getElementById(`s${v}r${rating}`).checked = false;
+            }
+            
+            // Set previously selected values
+            if(data_list[videoDataIndex][`S${v}`] !== null) {
+                document.getElementById(`s${v}r${data_list[videoDataIndex][`S${v}`]}`).checked = true;
+            }
         }
+    } else {
+        // Original comparison radio reset logic
+        for(let q = 1; q <= num_of_questions; q++) {
+            for(let v = 1; v <= num_of_selection; v++) {
+                document.getElementById(`q${q}v${v}`).checked = false;
+            }
 
-        for(let v = 1; v <= num_of_selection; v++) {
-            if(data_list[now][`Q${q}`] === data_list[now]['data'][v-1]['value']) {
-                document.getElementById(`q${q}v${v}`).checked = true;
-                break;
+            for(let v = 1; v <= num_of_selection; v++) {
+                if(data_list[videoDataIndex][`Q${q}`] === data_list[videoDataIndex]['data'][v-1]['value']) {
+                    document.getElementById(`q${q}v${v}`).checked = true;
+                    break;
+                }
             }
         }
     }
@@ -251,9 +320,48 @@ function renderObjects(now) {
             </form>
         `;
         document.getElementById("images").innerHTML = txt;
-        document.getElementById("num_page").innerHTML = ``; // Clear the page number
+        document.getElementById("num_page").innerHTML = ``;
+    } else if(now == 1) {
+        // Instruction page
+        let txt = `
+            <div style="text-align: center; padding: 20px;">
+                <h2>Instructions</h2>
+                <div style="max-width: 800px; margin-left: auto; margin-right: auto; text-align: left;">
+                    <p style="margin-bottom: 10px; font-size: 16px;">
+                        This study evaluates different video processing methods for mannequin challenge videos, where people freeze like mannequins while a camera moves around the scene.
+                    </p>
+                    <p style="margin-bottom: 20px; font-size: 16px; text-align: left;">
+                        Below is an example of what mannequin challenge is.
+                    </p>
+                </div>
+                
+                <!-- Your instruction video -->
+                <video width="800" controls preload="auto" autoplay muted loop>
+                    <source src="./data/instruction-video.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+                
+                <div style="margin-top: 20px; text-align: left; max-width: 800px; margin-left: auto; margin-right: auto;">
+                    <h3>What you'll be evaluating:</h3>
+                    <ul>
+                        <li><strong>Artifacts:</strong> Look for ghosting or double contour effects around objects</li>
+                        <li><strong>Fine Details:</strong> Notice how well facial features, hair strands, and texture edges are preserved</li>
+                        <li><strong>Frozen Time Effect:</strong> Evaluate how convincing and appealing the video is</li>
+                    </ul>
+                    
+                    <p><strong>Instructions:</strong></p>
+                    <p>There are 11 questions. For each set of videos, you'll answer questions by selecting which video performs best for each criterion. Take your time to compare all videos before making your selections.</p>
+                </div>
+            </div>
+        `;
+        document.getElementById("images").innerHTML = txt;
+        document.getElementById("num_page").innerHTML = ``;
     } else {
-        // Control buttons for videos
+        // Video pages (both comparison and stillness)
+        let videoDataIndex = now; // Don't subtract 1, use now directly since video data starts at index 2
+        let isStillness = data_list[videoDataIndex].type === "stillness";
+        
+        // Control buttons (same for both types)
         let controlButtons = `
             <div class="group-controls" style="display: flex; justify-content: center; margin-bottom: 15px; gap: 10px;">
                 <button class="btn" onclick="playAllVideos()" style="padding: 5px 10px; background-color: #007bff; color: white; border: none; border-radius: 3px;">Start All</button>
@@ -269,26 +377,49 @@ function renderObjects(now) {
             </div>
         `;
         
-        // Create video rows
-        let firstRowVideos = "";
-        let secondRowVideos = "";
+        let videoContent = "";
         
-        // First row - videos 1 and 2
-        for(let i = 0; i < Math.min(2, num_of_selection); i++){
-            firstRowVideos += `
-                <div class="input-object" style="width: ${obj_width}px;">
-                    ${generateElements(data_list[now]['data'][i]['url'], obj_width, element_type)}
-                    <div class="titles">${obj_title} ${i+1}</div>
+        if (isStillness) {
+            // Layout for stillness evaluation (5 videos)
+            videoContent = `<div class="video-row" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">`;
+            for(let i = 0; i < 5; i++){
+                videoContent += `
+                    <div class="input-object" style="width: 45%; max-width: 450px; margin-bottom: 20px;">
+                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], 450, element_type)}
+                        <div class="titles">${obj_title} ${i+1}</div>
+                    </div>
+                `;
+            }
+            videoContent += `</div>`;
+        } else {
+            // Layout for comparison (4 videos in 2x2)
+            let firstRowVideos = "";
+            let secondRowVideos = "";
+            
+            for(let i = 0; i < Math.min(2, num_of_selection); i++){
+                firstRowVideos += `
+                    <div class="input-object" style="width: ${obj_width}px;">
+                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], obj_width, element_type)}
+                        <div class="titles">${obj_title} ${i+1}</div>
+                    </div>
+                `;
+            }
+            
+            for(let i = 2; i < num_of_selection; i++){
+                secondRowVideos += `
+                    <div class="input-object" style="width: ${obj_width}px;">
+                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], obj_width, element_type)}
+                        <div class="titles">${obj_title} ${i+1}</div>
+                    </div>
+                `;
+            }
+
+            videoContent = `
+                <div class="video-row" style="margin-bottom: 20px;">
+                    ${firstRowVideos}
                 </div>
-            `;
-        }
-        
-        // Second row - videos 3 and 4 (if they exist)
-        for(let i = 2; i < num_of_selection; i++){
-            secondRowVideos += `
-                <div class="input-object" style="width: ${obj_width}px;">
-                    ${generateElements(data_list[now]['data'][i]['url'], obj_width, element_type)}
-                    <div class="titles">${obj_title} ${i+1}</div>
+                <div class="video-row">
+                    ${secondRowVideos}
                 </div>
             `;
         }
@@ -296,37 +427,40 @@ function renderObjects(now) {
         let txt = `
             <div>
                 ${controlButtons}
-                <div class="video-row" style="margin-bottom: 20px;">
-                    ${firstRowVideos}
-                </div>
-                <div class="video-row">
-                    ${secondRowVideos}
-                </div>
+                ${videoContent}
             </div>
         `;
 
         document.getElementById("images").innerHTML = txt;
-        document.getElementById("num_page").innerHTML = `${now}/${data_list.length-1}`;
+        let comparisonPages = 7; // Your 7 comparison pages  
+        let stillnessPages = 4;  // Your 4 stillness pages
+        let totalVideoPages = comparisonPages + stillnessPages;
+
+        if (now >= 2 && now <= comparisonPages + 1) {
+            // Comparison pages (now 2-8 → display as 1-7)
+            document.getElementById("num_page").innerHTML = `Comparison ${now-1}/${comparisonPages}`;
+        } else if (now > comparisonPages + 1) {
+            // Stillness pages (now 9-12 → display as 1-4) 
+            let stillnessPageNum = now - comparisonPages - 1;
+            document.getElementById("num_page").innerHTML = `Stillness ${stillnessPageNum}/${stillnessPages}`;
+        }
         
-        // Initialize video sync after a short delay
         setTimeout(initVideoSynchronization, 100);
     }
     
-    // Set up the question section
-    document.getElementById("text_prompt").innerHTML = `Questions`;
-    renderQuestions();
-    
-    // Control visibility of elements based on current page
-    if(now == 0) {
+    // Control visibility and content based on current page
+    if(now == 0 || now == 1) { // Hide questions on both username and instruction pages
         document.getElementById("question").style.visibility = "hidden";
-        // Hide page number on the username page
         document.getElementById("num_page").style.visibility = "hidden";
     } else {
+        // Set up the question section only for video pages
+        document.getElementById("text_prompt").innerHTML = `Questions`;
+        renderQuestions();
         document.getElementById("question").style.visibility = "visible";
         document.getElementById("num_page").style.visibility = "visible";
     }
 
-    if(now == 0 || now == 1) {
+    if(now == 0) { // Hide prev button only on first page
         document.getElementById("prev_button").style.visibility = "hidden";
     } else {
         document.getElementById("prev_button").style.visibility = "visible";
@@ -340,30 +474,71 @@ function renderObjects(now) {
 }
 
 
+
 function renderQuestions() {
-    let txt = `<div style="margin: 0; padding: 0;">`; // Container with no extra margins
-
-    for(let q = 1; q <= num_of_questions; q++) {
-        txt += `
-        <div style="margin-bottom: 10px;"> <!-- Reduced space between questions -->
-            <p style="margin: 0 0 5px 0; font-weight: bold;">Q${q}. ${questions[q-1]}</p> <!-- Reduced bottom margin, added bold -->
-            <div style="display: flex; align-items: center; flex-wrap: wrap;">`; // Arrange options horizontally
-
-        for(let v = 1; v <= num_of_selection; v++){
-            txt +=`
-                <div style="margin-right: 15px; display: flex; align-items: center;"> <!-- Group radio + label with spacing -->
-                    <input type="radio" id="q${q}v${v}" name="Q${q}" value="${v}" class="radio-container" style="margin: 0 5px 0 0;"/>
-                    <label for="q${q}v${v}" style="margin: 0;">${v}</label>
-                </div>
-            `;
-        } 
-
-        txt +=`
-            </div>
-        </div>
-        `;
+    if (now <= 1) {
+        return;
     }
     
-    txt += `</div>`;
-    document.getElementById("questions").innerHTML = txt;
+    let videoDataIndex = now; // Change this from now-1 to now
+    let isStillness = data_list[videoDataIndex].type === "stillness";
+    
+    console.log("renderQuestions - now:", now, "videoDataIndex:", videoDataIndex, "isStillness:", isStillness);
+    
+    if (isStillness) {
+        // Render stillness questions (5 identical questions, one for each video)
+        let txt = `<div style="margin: 0; padding: 0;">`;
+        
+        for(let v = 1; v <= 5; v++) {
+            txt += `
+            <div style="margin-bottom: 15px;">
+                <p style="margin: 0 0 5px 0; font-weight: bold;">Video ${v}: ${stillness_question}</p>
+                <div style="display: flex; align-items: center; flex-wrap: wrap;">`;
+            
+            // 5-point scale for stillness
+            for(let rating = 1; rating <= 5; rating++){
+                txt +=`
+                    <div style="margin-right: 15px; display: flex; align-items: center;">
+                        <input type="radio" id="s${v}r${rating}" name="S${v}" value="${rating}" class="radio-container" style="margin: 0 5px 0 0;"/>
+                        <label for="s${v}r${rating}" style="margin: 0;">${rating}</label>
+                    </div>
+                `;
+            }
+            
+            txt +=`
+                </div>
+            </div>
+            `;
+        }
+        
+        txt += `</div>`;
+        document.getElementById("questions").innerHTML = txt;
+    } else {
+        // Original comparison questions
+        let txt = `<div style="margin: 0; padding: 0;">`;
+
+        for(let q = 1; q <= num_of_questions; q++) {
+            txt += `
+            <div style="margin-bottom: 10px;">
+                <p style="margin: 0 0 5px 0; font-weight: bold;">Q${q}. ${questions[q-1]}</p>
+                <div style="display: flex; align-items: center; flex-wrap: wrap;">`;
+
+            for(let v = 1; v <= num_of_selection; v++){
+                txt +=`
+                    <div style="margin-right: 15px; display: flex; align-items: center;">
+                        <input type="radio" id="q${q}v${v}" name="Q${q}" value="${v}" class="radio-container" style="margin: 0 5px 0 0;"/>
+                        <label for="q${q}v${v}" style="margin: 0;">${v}</label>
+                    </div>
+                `;
+            } 
+
+            txt +=`
+                </div>
+            </div>
+            `;
+        }
+        
+        txt += `</div>`;
+        document.getElementById("questions").innerHTML = txt;
+    }
 }

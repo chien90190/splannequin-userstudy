@@ -12,7 +12,7 @@
     </div>
     <br>
     <form>
-    <fieldset id="question" style="width:600px;">
+    <fieldset id="question" style="width:1100px;">
         <legend><b id="text_prompt"></b></legend>
         <div id="questions"></div>
     </fieldset>
@@ -42,6 +42,8 @@
             "Which video creates the most convincing 'frozen time' effect, where the scene appears perfectly static while the camera moves?"
         ]
         num_of_questions = questions.length
+
+        stillness_question = "How still is everything in the scene (people, objects, fire, water, etc.) except for the camera movement? (1 = many movements, 5 = perfectly still)"
         
         form_url = "https://docs.google.com/forms/d/1g2BDTwJjfQdpeRVbCFk966CzBmsflXY6Nwo5j-JVUMY/formResponse?"
 
@@ -55,31 +57,32 @@
 
             ["entry.545691709", "entry.2122281902", "entry.1295635086"],
             ["entry.1324347345", "entry.1468420399", "entry.1830225463"],
-            ["entry.1803416582", "entry.258372846", "entry.1641977658"],
-            ["entry.777412838", "entry.1188271433", "entry.723532485"],
-            ["entry.2051570683", "entry.81840528", "entry.1555251875"],
 
-            ["entry.2059414437", "entry.529442351", "entry.784480663"],
-            ["entry.1766930993", "entry.1316937407", "entry.380261123"],
-            ["entry.1489590171", "entry.1050781807", "entry.63644096"],
-            ["entry.1000678790", "entry.2121748361", "entry.1511438076"],
-            ["entry.500770907", "entry.922414313", "entry.1624512946"]
+            ["entry.1803416582", "entry.258372846", "entry.1641977658", "entry.777412838", "entry.1188271433"], 
+            ["entry.723532485", "entry.2051570683", "entry.81840528", "entry.1555251875", "entry.2059414437"], 
+            ["entry.529442351", "entry.784480663", "entry.1766930993", "entry.1316937407", "entry.380261123"],
+            ["entry.1489590171", "entry.1050781807", "entry.63644096", "entry.1000678790", "entry.2121748361"], 
+            ["entry.1511438076", "entry.500770907", "entry.922414313", "entry.1624512946"]
         ]
 
         data_list = [
             {
-                'username': ""
+                'username': ""           // Index 0: Username page
             },
+            {
+                'instruction_page': true // Index 1: Instruction page
+            }
         ]
 
         input_title = "Input Video"
         obj_title = "Video"
-        obj_width = 570
+        obj_width = 520
         element_type = "video" // video / image
+
+        // Add video data starting from index 2
         for(let i=1; i<8; i++) {
             data_list.push({
                 "name": `${i}`,
-                // Remove the "input": "", line
                 "data": [
                     {
                         "url": `data/${i}/ldg_baseline.mp4`,
@@ -103,9 +106,43 @@
                 "Q3": null,
             })
         }
-        num_of_selection = data_list[1]['data'].length
 
-        for(let i=1; i<data_list.length; i++) {
+        for(let i=1; i<=4; i++) {
+            data_list.push({
+                "name": `stillness_${i}`,
+                "type": "stillness", // Mark this as stillness evaluation
+                "data": [
+                    {
+                        "url": `data/${i}/input.mp4`,
+                        "value": "input"
+                    },
+                    {
+                        "url": `data/${i}/ldg_baseline.mp4`,
+                        "value": "ldg"
+                    },
+                    {
+                        "url": `data/${i}/scgs_baseline_node.mp4`,
+                        "value": "scgs"
+                    },
+                    {
+                        "url": `data/${i}/4dgs_baseline.mp4`,
+                        "value": "4dgs"
+                    },
+                    {
+                        "url": `data/${i}/4dgs_ours.mp4`,
+                        "value": "ours"
+                    }
+                ],
+                "S1": null, // Stillness question for video 1
+                "S2": null, // Stillness question for video 2
+                "S3": null, // Stillness question for video 3
+                "S4": null, // Stillness question for video 4
+                "S5": null, // Stillness question for video 5
+            })
+        }
+        num_of_selection = data_list[2]['data'].length  
+
+        for(let i=2; i<data_list.length; i++) {  // Start from index 2, not 1
             shuffle(data_list[i]['data']);
         }
         renderObjects(now);
