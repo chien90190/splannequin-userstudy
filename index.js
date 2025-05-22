@@ -314,7 +314,7 @@ function renderObjects(now) {
             <h1>User Study</h1>
             <form style="text-align: center;" align="center">
                 <fieldset>
-                    <legend>Anonymous Username 匿名名字</legend>
+                    <legend>Put Anonymous Username</legend>
                     <input type="text" id="username" value="">
                 </fieldset>
             </form>
