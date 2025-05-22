@@ -350,7 +350,7 @@ function renderObjects(now) {
                     </ul>
                     
                     <p><strong>Instructions:</strong></p>
-                    <p>There are 11 questions. For each set of videos, you'll answer questions by selecting which video performs best for each criterion. Take your time to compare all videos before making your selections.</p>
+                    <p>There are 11 questions. In the first part, for each set of videos, you'll answer questions by selecting which video performs best for each criterion. In the second part, you'll rate each video of a set. Take your time to compare all videos before making your selections.</p>
                 </div>
             </div>
         `;
