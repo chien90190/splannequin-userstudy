@@ -20,9 +20,7 @@ function nextPage() {
             for(let i=2; i<data_list.length; i++) {
                 if (data_list[i].type === "stillness") {
                     // Handle stillness questions (S1-S5)
-                    for(let v = 1; v <= 5; v++) {
-                        MySubmit += entry_list[entryIndex][v-1] + "=" + data_list[i][`S${v}`] + "&";
-                    }
+                    MySubmit += entry_list[entryIndex][0] + "=" + data_list[i][`S1`] + "&";
                 } else {
                     // Handle comparison questions (Q1-Q3)  
                     for(let q = 1; q <= num_of_questions; q++) {
@@ -79,16 +77,14 @@ function changePage(now) {
         let isStillness = data_list[videoDataIndex].type === "stillness";
         console.log("Is stillness page:", isStillness);
 
+        // In changePage function:
         if (isStillness) {
-            // Validate stillness questions (S1-S5)
-            for(let v = 1; v <= 5; v++) {
-                let query = document.querySelector(`input[name="S${v}"]:checked`);
-                if (query == null) {
-                    query_checked = false;
-                    console.log("Missing answer for S" + v);
-                } else {
-                    data_list[videoDataIndex][`S${v}`] = parseInt(query.value);
-                }
+            let query = document.querySelector(`input[name="S1"]:checked`);
+            if (query == null) {
+                query_checked = false;
+                console.log("Missing answer for S1");
+            } else {
+                data_list[videoDataIndex][`S1`] = parseInt(query.value); // 1-5 rating
             }
         } else {
             // Validate comparison questions (Q1-Q3)
@@ -116,15 +112,13 @@ function resetRadioStatus(now) {
     
     if (isStillness) {
         // Reset stillness radio buttons
-        for(let v = 1; v <= 5; v++) {
-            for(let rating = 1; rating <= 5; rating++) {
-                document.getElementById(`s${v}r${rating}`).checked = false;
-            }
-            
-            // Set previously selected values
-            if(data_list[videoDataIndex][`S${v}`] !== null) {
-                document.getElementById(`s${v}r${data_list[videoDataIndex][`S${v}`]}`).checked = true;
-            }
+        for(let rating = 1; rating <= 5; rating++) {
+            document.getElementById(`s1r${rating}`).checked = false;
+        }
+        
+        // Set previously selected value
+        if(data_list[videoDataIndex][`S1`] !== null) {
+            document.getElementById(`s1r${data_list[videoDataIndex][`S1`]}`).checked = true;
         }
     } else {
         // Original comparison radio reset logic
@@ -350,7 +344,7 @@ function renderObjects(now) {
                     </ul>
                     
                     <p><strong>Instructions:</strong></p>
-                    <p>There are 11 questions. In the first part, for each set of videos, you'll answer questions by selecting which video performs best for each criterion. In the second part, you'll rate each video in a set. Take your time to compare all videos before making your selections.</p>
+                    <p>There are ${num_comparison_pages + num_stillness_pages} questions. In the first part (${num_comparison_pages} questions), for each set of videos, you'll answer questions by selecting which video performs best for each criterion. In the second part (${num_stillness_pages} questions), you'll rate each video in a set. Take your time to compare all videos before making your selections.</p>
                 </div>
             </div>
         `;
@@ -380,13 +374,12 @@ function renderObjects(now) {
         let videoContent = "";
         
         if (isStillness) {
-            // Layout for stillness evaluation (5 videos)
-            videoContent = `<div class="video-row" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">`;
-            for(let i = 0; i < 5; i++){
+            videoContent = `<div class="video-row" style="display: flex; justify-content: space-between; width: 90%; margin: 0 auto;">`;
+            for(let i = 0; i < 2; i++){
                 videoContent += `
-                    <div class="input-object" style="width: 45%; max-width: 450px; margin-bottom: 20px;">
-                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], 450, element_type)}
-                        <div class="titles">${obj_title} ${i+1}</div>
+                    <div class="input-object" style="width: 43%; margin-bottom: 20px;">
+                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], 700, element_type)}
+                        <div class="titles">${i === 0 ? 'Input Video' : 'Processed Video'}</div>
                     </div>
                 `;
             }
@@ -432,8 +425,8 @@ function renderObjects(now) {
         `;
 
         document.getElementById("images").innerHTML = txt;
-        let comparisonPages = 7; // Your 7 comparison pages  
-        let stillnessPages = 4;  // Your 4 stillness pages
+        let comparisonPages = num_comparison_pages; // Your 7 comparison pages  
+        let stillnessPages = num_stillness_pages;  // Your 4 stillness pages
         let totalVideoPages = comparisonPages + stillnessPages;
 
         if (now >= 2 && now <= comparisonPages + 1) {
@@ -486,32 +479,26 @@ function renderQuestions() {
     console.log("renderQuestions - now:", now, "videoDataIndex:", videoDataIndex, "isStillness:", isStillness);
     
     if (isStillness) {
-        // Render stillness questions (5 identical questions, one for each video)
-        let txt = `<div style="margin: 0; padding: 0;">`;
-        
-        for(let v = 1; v <= 5; v++) {
-            txt += `
+        // Render one rating question for the right video only
+        let txt = `<div style="margin: 0; padding: 0;">
             <div style="margin-bottom: 15px;">
-                <p style="margin: 0 0 5px 0; font-weight: bold;">Video ${v}: ${stillness_question}</p>
+                <p style="margin: 0 0 5px 0; font-weight: bold;">${stillness_question}</p>
                 <div style="display: flex; align-items: center; flex-wrap: wrap;">`;
-            
-            // 5-point scale for stillness
-            for(let rating = 1; rating <= 5; rating++){
-                txt +=`
-                    <div style="margin-right: 15px; display: flex; align-items: center;">
-                        <input type="radio" id="s${v}r${rating}" name="S${v}" value="${rating}" class="radio-container" style="margin: 0 5px 0 0;"/>
-                        <label for="s${v}r${rating}" style="margin: 0;">${rating}</label>
-                    </div>
-                `;
-            }
-            
+    
+        // 5-point scale for stillness
+        for(let rating = 1; rating <= 5; rating++){
             txt +=`
+                <div style="margin-right: 15px; display: flex; align-items: center;">
+                    <input type="radio" id="s1r${rating}" name="S1" value="${rating}" class="radio-container" style="margin: 0 5px 0 0;"/>
+                    <label for="s1r${rating}" style="margin: 0;">${rating}</label>
                 </div>
-            </div>
             `;
         }
         
-        txt += `</div>`;
+        txt +=`
+                </div>
+            </div>
+        </div>`;
         document.getElementById("questions").innerHTML = txt;
     } else {
         // Original comparison questions
