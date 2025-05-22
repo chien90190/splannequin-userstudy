@@ -1,1 +1,1 @@
-# splannequin.github.io
+# splannequin user study
