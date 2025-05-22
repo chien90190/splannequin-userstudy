@@ -19,7 +19,7 @@ function nextPage() {
             // Handle all data starting from index 2
             for(let i=2; i<data_list.length; i++) {
                 if (data_list[i].type === "stillness") {
-                    // Handle stillness questions (S1-S5)
+                    // This will now submit "input" or "ours" instead of 1-5
                     MySubmit += entry_list[entryIndex][0] + "=" + data_list[i][`S1`] + "&";
                 } else {
                     // Handle comparison questions (Q1-Q3)  
@@ -82,9 +82,9 @@ function changePage(now) {
             let query = document.querySelector(`input[name="S1"]:checked`);
             if (query == null) {
                 query_checked = false;
-                console.log("Missing answer for S1");
             } else {
-                data_list[videoDataIndex][`S1`] = parseInt(query.value); // 1-5 rating
+                // This line correctly converts 1→"input" or 2→"ours" 
+                data_list[videoDataIndex][`S1`] = data_list[videoDataIndex]['data'][parseInt(query.value)-1]['value'];
             }
         } else {
             // Validate comparison questions (Q1-Q3)
@@ -111,14 +111,17 @@ function resetRadioStatus(now) {
     let isStillness = data_list[videoDataIndex].type === "stillness";
     
     if (isStillness) {
-        // Reset stillness radio buttons
-        for(let rating = 1; rating <= 5; rating++) {
-            document.getElementById(`s1r${rating}`).checked = false;
+        // Reset radio buttons
+        for(let v = 1; v <= 2; v++) {
+            document.getElementById(`s1v${v}`).checked = false;
         }
         
         // Set previously selected value
-        if(data_list[videoDataIndex][`S1`] !== null) {
-            document.getElementById(`s1r${data_list[videoDataIndex][`S1`]}`).checked = true;
+        for(let v = 1; v <= 2; v++) {
+            if(data_list[videoDataIndex][`S1`] === data_list[videoDataIndex]['data'][v-1]['value']) {
+                document.getElementById(`s1v${v}`).checked = true;
+                break;
+            }
         }
     } else {
         // Original comparison radio reset logic
@@ -344,7 +347,7 @@ function renderObjects(now) {
                     </ul>
                     
                     <p><strong>Instructions:</strong></p>
-                    <p>There are ${num_comparison_pages + num_stillness_pages} questions. In the first part (${num_comparison_pages} questions), for each set of videos, you'll answer questions by selecting which video performs best for each criterion. In the second part (${num_stillness_pages} questions), you'll rate each video in a set. Take your time to compare all videos before making your selections.</p>
+                    <p>There are ${num_comparison_pages + num_stillness_pages} questions. In the first part (${num_comparison_pages} questions), for each set of videos, you'll answer questions by selecting which video performs best for each criterion. In the second part (${num_stillness_pages} questions), you'll compare two videos and select which one is closer to the ideal of stillness in Mannequin Challenge. Take your time to compare all videos before making your selections.</p>
                 </div>
             </div>
         `;
@@ -372,14 +375,16 @@ function renderObjects(now) {
         `;
         
         let videoContent = "";
-        
+
         if (isStillness) {
-            videoContent = `<div class="video-row" style="display: flex; justify-content: space-between; width: 90%; margin: 0 auto;">`;
+            // Layout for stillness evaluation (2 videos only)
+            let stillnessWidth = 650; // Bigger than obj_width (570)
+            videoContent = `<div class="video-row" style="display: flex; justify-content: space-between; width: 95%; margin: 0 auto;">`;
             for(let i = 0; i < 2; i++){
                 videoContent += `
-                    <div class="input-object" style="width: 43%; margin-bottom: 20px;">
-                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], 700, element_type)}
-                        <div class="titles">${i === 0 ? 'Input Video' : 'Processed Video'}</div>
+                    <div class="input-object" style="width: 47%; margin-bottom: 10px;">
+                        ${generateElements(data_list[videoDataIndex]['data'][i]['url'], stillnessWidth, element_type)}
+                        <div class="titles">${obj_title} ${i+1}</div>
                     </div>
                 `;
             }
@@ -479,22 +484,22 @@ function renderQuestions() {
     console.log("renderQuestions - now:", now, "videoDataIndex:", videoDataIndex, "isStillness:", isStillness);
     
     if (isStillness) {
-        // Render one rating question for the right video only
+        // Render comparison question (similar to regular comparison questions)
         let txt = `<div style="margin: 0; padding: 0;">
             <div style="margin-bottom: 15px;">
                 <p style="margin: 0 0 5px 0; font-weight: bold;">${stillness_question}</p>
                 <div style="display: flex; align-items: center; flex-wrap: wrap;">`;
-    
-        // 5-point scale for stillness
-        for(let rating = 1; rating <= 5; rating++){
+
+        // Two options: Video 1 and Video 2
+        for(let v = 1; v <= 2; v++){
             txt +=`
                 <div style="margin-right: 15px; display: flex; align-items: center;">
-                    <input type="radio" id="s1r${rating}" name="S1" value="${rating}" class="radio-container" style="margin: 0 5px 0 0;"/>
-                    <label for="s1r${rating}" style="margin: 0;">${rating}</label>
+                    <input type="radio" id="s1v${v}" name="S1" value="${v}" class="radio-container" style="margin: 0 5px 0 0;"/>
+                    <label for="s1v${v}" style="margin: 0;">Video ${v}</label>
                 </div>
             `;
-        }
-        
+        } 
+
         txt +=`
                 </div>
             </div>
@@ -514,10 +519,10 @@ function renderQuestions() {
                 txt +=`
                     <div style="margin-right: 15px; display: flex; align-items: center;">
                         <input type="radio" id="q${q}v${v}" name="Q${q}" value="${v}" class="radio-container" style="margin: 0 5px 0 0;"/>
-                        <label for="q${q}v${v}" style="margin: 0;">${v}</label>
+                        <label for="q${q}v${v}" style="margin: 0;">Video ${v}</label>
                     </div>
                 `;
-            } 
+            }
 
             txt +=`
                 </div>

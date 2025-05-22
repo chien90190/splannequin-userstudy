@@ -43,7 +43,7 @@
         ]
         num_of_questions = questions.length
 
-        stillness_question = "How still is the processed video (people, objects, fire, water, etc.) compared to the input except for the camera trajectory? (1 = not still, 5 = very still)"
+        stillness_question = "Which video comes closer to achieving perfect scene stillness while the camera moves?"
         
         form_url = "https://docs.google.com/forms/d/1g2BDTwJjfQdpeRVbCFk966CzBmsflXY6Nwo5j-JVUMY/formResponse?"
 
@@ -139,9 +139,7 @@
         num_of_selection = data_list[2]['data'].length  
 
         for(let i=2; i<data_list.length; i++) {  // Start from index 2, not 1
-            if (data_list[i].type !== "stillness") {
-                shuffle(data_list[i]['data']);
-            }
+            shuffle(data_list[i]['data']);
         }
         renderObjects(now);
 
